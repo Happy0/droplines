@@ -8,6 +8,5 @@ Install cabal and then run 'cabal install' in your checked out directory.
 
 # Usage
 
-Usage:
-    droplines <num_lines> [<file>]
+See USAGE.txt
     
