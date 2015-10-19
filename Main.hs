@@ -4,8 +4,8 @@ import Control.Monad.Trans.Resource
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import Data.Conduit
-import qualified Data.Conduit.List as CL
 import qualified Data.Conduit.Binary as CB
+import qualified Data.Conduit.Combinators as CL
 import Safe
 import System.Console.Docopt
 import System.Environment (getArgs)
@@ -22,18 +22,21 @@ main = do
     let maybeLines = mfilter isPositive $ readMay numLinesArgument 
     numLines <- maybe (exitWithUsage patterns) (return . id) maybeLines
 
-    let filePath = getArg args (argument "file")
-    case filePath of
-        Nothing ->
-            do
-                CB.sourceHandle stdin $$ dropLines numLines $= CL.mapM_ C.putStrLn
-        Just path ->
-            do
-                runResourceT $ 
-                    CB.sourceFile path $$ dropLines numLines $= CL.mapM_ (liftIO . C.putStrLn)
+    -- If an input file or output file are not defined, we use standard in and out respectively
+    let maybeInputFile  = getArg args (argument "file")
+    let maybeOutputFile = getArg args (shortOption 'o')
 
-dropLines :: Monad m => Int -> Conduit B.ByteString m B.ByteString
-dropLines dropLines = CB.lines =$= drop dropLines
+    dropLines numLines maybeInputFile maybeOutputFile
+
+dropLines :: Int -> Maybe String -> Maybe String -> IO ()
+dropLines numLines inputFile outputFile = 
+    runResourceT $ do
+        let source = maybe (CB.sourceHandle stdin) CB.sourceFile inputFile
+        let sink = maybe (CB.sinkHandle stdout) CB.sinkFile outputFile
+        source =$= dropLinesConduit numLines $$ sink      
+
+dropLinesConduit :: Monad m => Int -> Conduit B.ByteString m B.ByteString
+dropLinesConduit dropLines = CB.lines =$= drop dropLines =$= CL.intersperse "\n"
     where
         drop dropNum = CL.drop dropNum >> awaitForever yield
 
