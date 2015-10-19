@@ -23,7 +23,7 @@ main = do
     numLines <- maybe (exitWithUsage patterns) (return . id) maybeLines
 
     -- If an input file or output file are not defined, we use standard in and out respectively
-    let maybeInputFile  = getArg args (argument "file")
+    let maybeInputFile  = getArg args (argument "input_file")
     let maybeOutputFile = getArg args (shortOption 'o')
 
     dropLines numLines maybeInputFile maybeOutputFile

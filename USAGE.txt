@@ -1,2 +1,2 @@
 Usage:
-    droplines  [-o=<output_file>] <num_lines> [<file>]
+    droplines  [-o=<output_file>] <num_lines> [<input_file>]
