@@ -36,9 +36,16 @@ dropLines numLines inputFile outputFile =
         source =$= dropLinesConduit numLines $$ sink      
 
 dropLinesConduit :: Monad m => Int -> Conduit B.ByteString m B.ByteString
-dropLinesConduit dropLines = CB.lines =$= drop dropLines =$= CL.intersperse "\n"
+dropLinesConduit 0 = awaitForever $ yield
+dropLinesConduit dropLines = go
     where
-        drop dropNum = CL.drop dropNum >> awaitForever yield
+        go =
+            do 
+                next <- await
+                case next of
+                    Nothing -> return ()
+                    Just bs ->
+                        leftover (B.drop 1 $ B.dropWhile (\chr -> chr /= 10) bs) >> dropLinesConduit (dropLines - 1)
 
 isPositive :: Int -> Bool
 isPositive num = num >= 0
