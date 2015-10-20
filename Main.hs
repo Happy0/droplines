@@ -45,7 +45,8 @@ dropLinesConduit dropLines = go
                 case next of
                     Nothing -> return ()
                     Just bs ->
-                        leftover (B.drop 1 $ B.dropWhile (\chr -> chr /= 10) bs) >> dropLinesConduit (dropLines - 1)
+                        leftover (B.drop 1 $ B.dropWhile (\chr -> chr /= 10) bs) >>
+                        dropLinesConduit (dropLines - 1)
 
 isPositive :: Int -> Bool
 isPositive num = num >= 0
