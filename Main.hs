@@ -8,6 +8,7 @@ import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.Combinators as CL
 import Safe
 import System.Console.Docopt
+import System.Directory
 import System.Environment (getArgs)
 import System.IO
 
@@ -29,11 +30,19 @@ main = do
     dropLines numLines maybeInputFile maybeOutputFile
 
 dropLines :: Int -> Maybe String -> Maybe String -> IO ()
-dropLines numLines inputFile outputFile = 
+dropLines numLines inputFile outputFile = do
+    sequence_ $ exitIfInputFilePathInvalid <$> inputFile
     runResourceT $ do
         let source = maybe (CB.sourceHandle stdin) CB.sourceFile inputFile
         let sink = maybe (CB.sinkHandle stdout) CB.sinkFile outputFile
-        source =$= dropLinesConduit numLines $$ sink      
+        source =$= dropLinesConduit numLines $$ sink
+
+exitIfInputFilePathInvalid :: FilePath -> IO ()
+exitIfInputFilePathInvalid path = do
+    fileExists <- doesFileExist path
+    if (not fileExists)
+        then exitWithUsageMessage patterns "Invalid input file path."
+        else return ()
 
 dropLinesConduit :: Monad m => Int -> Conduit B.ByteString m B.ByteString
 dropLinesConduit 0 = awaitForever $ yield
@@ -45,7 +54,7 @@ dropLinesConduit dropLines = go
                 case next of
                     Nothing -> return ()
                     Just bs -> do
-                        let remaining = (B.drop 1 $ B.dropWhile (not . isNewLine) bs)
+                        let remaining = B.drop 1 $ B.dropWhile (not . isNewLine) bs
                         if B.null remaining
                             then dropLinesConduit (dropLines - 1)
                             else leftover remaining >> dropLinesConduit (dropLines - 1)
