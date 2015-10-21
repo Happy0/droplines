@@ -44,9 +44,11 @@ dropLinesConduit dropLines = go
                 next <- await
                 case next of
                     Nothing -> return ()
-                    Just bs ->
-                        leftover (B.drop 1 $ B.dropWhile (not . isNewLine) bs) >>
-                        dropLinesConduit (dropLines - 1)
+                    Just bs -> do
+                        let remaining = (B.drop 1 $ B.dropWhile (not . isNewLine) bs)
+                        if B.null remaining
+                            then dropLinesConduit (dropLines - 1)
+                            else leftover remaining >> dropLinesConduit (dropLines - 1)
 
         isNewLine chr = chr == 10
 
