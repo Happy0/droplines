@@ -39,10 +39,9 @@ dropLines numLines inputFile outputFile = do
 
 exitIfInputFilePathInvalid :: FilePath -> IO ()
 exitIfInputFilePathInvalid path = do
-    fileExists <- doesFileExist path
-    if (not fileExists)
-        then exitWithUsageMessage patterns "Invalid input file path."
-        else return ()
+    fileDoesNotExist <- not <$> doesFileExist path
+    when fileDoesNotExist $
+        exitWithUsageMessage patterns "Invalid input file path."
 
 dropLinesConduit :: Monad m => Int -> Conduit B.ByteString m B.ByteString
 dropLinesConduit 0 = awaitForever $ yield
