@@ -45,19 +45,17 @@ exitIfInputFilePathInvalid path = do
 
 dropLinesConduit :: Monad m => Int -> Conduit B.ByteString m B.ByteString
 dropLinesConduit 0 = awaitForever $ yield
-dropLinesConduit dropLines = go
+dropLinesConduit dropLines =
+    do 
+        next <- await
+        case next of
+            Nothing -> return ()
+            Just bs -> do
+                let remaining = B.drop 1 $ B.dropWhile (not . isNewLine) bs
+                if B.null remaining
+                    then dropLinesConduit (dropLines - 1)
+                    else leftover remaining >> dropLinesConduit (dropLines - 1)
     where
-        go =
-            do 
-                next <- await
-                case next of
-                    Nothing -> return ()
-                    Just bs -> do
-                        let remaining = B.drop 1 $ B.dropWhile (not . isNewLine) bs
-                        if B.null remaining
-                            then dropLinesConduit (dropLines - 1)
-                            else leftover remaining >> dropLinesConduit (dropLines - 1)
-
         isNewLine chr = chr == 10
 
 isPositive :: Int -> Bool
